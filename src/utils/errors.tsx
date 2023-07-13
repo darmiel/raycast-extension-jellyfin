@@ -1,3 +1,15 @@
+/**
+ * Extracts the error message from an unknown error-like object
+ * @param error The error to get the message from
+ * @returns the error message as a string
+ */
+export function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+}
+
 export const ErrStatus400 = `# Error 😖
 
 The server returned status \` 400 \` (that's not good!).
@@ -13,7 +25,7 @@ and update it in the extension's preferences (\`Cmd\` + \`Enter\`)
 
 ## Didn't work?
 
-If you're sure you got the right User ID, please submit an issue.`
+If you're sure you got the right User ID, please submit an issue.`;
 
 export const ErrStatus401 = `# Error 😖
 
@@ -30,4 +42,4 @@ and update it in the extension's preferences (\`Cmd\` + \`Enter\`)
 
 ## Didn't work?
 
-If you're sure you got the right API Token, please submit an issue.`
+If you're sure you got the right API Token, please submit an issue.`;

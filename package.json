@@ -12,8 +12,8 @@
   "license": "MIT",
   "commands": [
     {
-      "name": "index",
-      "title": "Find Movies and Shows",
+      "name": "list-movies-series",
+      "title": "List Movies and Shows",
       "description": "Find Movies and Shows from your Jellyfin Instance and open them in the browser",
       "mode": "view"
     }
@@ -42,6 +42,15 @@
       "title": "Jellyfin API Key",
       "description": "Get the API Key from 'Administrator -> API Keys -> [+]'",
       "placeholder": "e. g. 215fbg31ca154524aa5746430f1da1b0"
+    },
+    {
+      "type": "textfield",
+      "name": "columns",
+      "required": false,
+      "title": "Grid Columns",
+      "default": "6",
+      "description": "Must be a number between 1 and 7",
+      "placeholder": "6"
     }
   ],
   "dependencies": {
