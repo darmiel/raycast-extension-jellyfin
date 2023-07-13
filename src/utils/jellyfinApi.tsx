@@ -162,3 +162,68 @@ export async function signalTask(id: string, action = "DELETE"): Promise<boolean
   }
   return resp.ok;
 }
+
+export interface Session {
+  PlayState: {
+    IsPaused: boolean;
+    IsMuted: boolean;
+  };
+  RemoteEndPoint: string;
+  Id: string;
+  UserId: string;
+  UserName?: string;
+  Client: string;
+  DeviceName: string;
+  DeviceId: string;
+  ApplicationVersion: string;
+  SupportsMediaControl: boolean;
+  SupportsRemoteControl: boolean;
+  NowPlayingItem?: {
+    Name: string;
+    ServerId: string;
+    Id: string;
+    Overview: string;
+    CommunityRating: number;
+    RunTimeTicks: number;
+    ProductionYear: number;
+    ParentId: string;
+    Type: string;
+    SeriesName?: string;
+  };
+  LastActivityDate: string;
+  NowPlayingQueue: [];
+  NowPlayingQueueFullItems: [];
+  ServerId: string;
+  SupportedCommands: string[];
+}
+
+export async function fetchRecentSessions(): Promise<Session[]> {
+  const url = buildUrl(["Sessions"], { ActiveWithinSeconds: "960", ApiKey: preferences.jellyfinApiKey });
+  const resp = await fetch(url);
+  if (!resp.ok) {
+    throwFetchError(resp);
+  }
+  const sessions = (await resp.json()) as Session[];
+  const now = new Date();
+  return sessions.filter(
+    (session) => session.UserName && (now.getTime() - Date.parse(session.LastActivityDate)) / 1000 <= 960
+  );
+}
+
+export async function signalSessionCommand(sessionId: string, command: string) {
+  const url = buildUrl(["Sessions", sessionId, "Command"]);
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      Name: command,
+      ControllingUserId: preferences.jellyfinUserID,
+      Arguments: {},
+    }),
+  });
+  if (!resp.ok) {
+    throwFetchError(resp);
+  }
+}

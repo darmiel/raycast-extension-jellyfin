@@ -28,6 +28,12 @@
       "title": "List Scheduled Tasks",
       "description": "Show Scheduled and Running Tasks from your Jellyfin Instance",
       "mode": "view"
+    },
+    {
+      "name": "recent-sessions",
+      "title": "List Recent Sessions",
+      "description": "Show Recent Sessions from your Jellyfin Instance",
+      "mode": "view"
     }
   ],
   "preferences": [
