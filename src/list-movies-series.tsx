@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { Action, ActionPanel, Detail, Grid, Icon, openExtensionPreferences, showToast, Toast } from "@raycast/api";
+import { Grid, showToast, Toast } from "@raycast/api";
 import { getErrorMessage } from "./utils/errors";
 import { getPreferences } from "./utils/preferences";
-import { MediaGridItem, MediaType, RawMediaItem, fetchItems, HelpError } from "./utils/jellyfinApi";
+import { MediaType, RawMediaItem, fetchItems, HelpError } from "./utils/jellyfinApi";
 import { editToast } from "./utils/utils";
+import MediaGridItem from "./components/MediaGridItem";
+import ErrorDetailView from "./components/ErrorDetailView";
 
 const preferences = getPreferences();
 
@@ -42,53 +44,41 @@ export default function Command({ parentId }: { parentId?: string }) {
     })().then(() => setIsLoading(false));
   }, []);
 
-  return error ? (
-    <Detail
-      markdown={error}
-      actions={
-        <ActionPanel title="Actions">
-          <Action
-            title="Open Preferences"
-            icon={Icon.Gear}
-            shortcut={{ key: "enter", modifiers: ["cmd"] }}
-            onAction={() => openExtensionPreferences()}
-          />
-        </ActionPanel>
-      }
-    />
-  ) : (
-    <Grid
-      columns={Math.min(Math.max(Number(preferences.columns), 1), 7)}
-      isLoading={isLoading}
-      inset={Grid.Inset.Zero}
-      searchBarAccessory={
-        <Grid.Dropdown
-          tooltip="Filter Media Type"
-          storeValue
-          onChange={(newValue) => {
-            setMediaTypes(newValue.split(", ").map((val) => val as MediaType));
-          }}
-        >
-          <Grid.Dropdown.Item title="All" value={sections.join(", ")} />
-          {sections.map((s) => (
-            <Grid.Dropdown.Item key={s} title={s} value={s} />
+  return (
+    <ErrorDetailView errorMessage={error}>
+      <Grid
+        columns={Math.min(Math.max(Number(preferences.columns), 1), 7)}
+        isLoading={isLoading}
+        inset={Grid.Inset.Zero}
+        searchBarAccessory={
+          <Grid.Dropdown
+            tooltip="Filter Media Type"
+            storeValue
+            onChange={(newValue) => {
+              setMediaTypes(newValue.split(", ").map((val) => val as MediaType));
+            }}
+          >
+            <Grid.Dropdown.Item title="All" value={sections.join(", ")} />
+            {sections.map((s) => (
+              <Grid.Dropdown.Item key={s} title={s} value={s} />
+            ))}
+          </Grid.Dropdown>
+        }
+      >
+        {sections
+          .filter((s) => mediaTypes.includes(s))
+          .map((s, sIndex) => (
+            <Grid.Section key={s + "_" + sIndex} title={s} aspectRatio={"3/4"}>
+              {media
+                .filter((m) => m.Type == s)
+                .map((m, mIndex) => (
+                  <MediaGridItem key={s + "_" + mIndex} item={m} />
+                ))}
+            </Grid.Section>
           ))}
-        </Grid.Dropdown>
-      }
-    >
-      {sections
-        .filter((s) => mediaTypes.includes(s))
-        .map((s, sIndex) => (
-          <Grid.Section key={s + "_" + sIndex} title={s} aspectRatio={"3/4"}>
-            {media
-              .filter((m) => m.Type == s)
-              .map((m, mIndex) => (
-                <MediaGridItem key={s + "_" + mIndex} item={m} />
-              ))}
-          </Grid.Section>
-        ))}
 
-      <Grid.EmptyView title="No Media found on Jellyfin" />
-    </Grid>
+        <Grid.EmptyView title="No Media found on Jellyfin" />
+      </Grid>
+    </ErrorDetailView>
   );
 }

@@ -1,11 +1,74 @@
-import { Action, ActionPanel, Grid, Icon, Toast, showToast, useNavigation } from "@raycast/api";
 import { getPreferences } from "./preferences";
-import fetch from "node-fetch";
-import { ErrStatus400, ErrStatus401, getErrorMessage } from "./errors";
-import { ReactNode, useState } from "react";
-import ListMediaCommand from "../list-movies-series";
+import fetch, { Response } from "node-fetch";
+import { ErrStatus400, ErrStatus401 } from "./errors";
 
 const preferences = getPreferences();
+
+/**
+ * `buildUrl` is a function that constructs a url from an array of path segments and an optional query object.
+ *
+ * @param paths The array of path segments that forms the URL to be created.
+ * @param query An optional parameter, is an object of key/value pairs to be used as query parameters in the URL.
+ *
+ * @returns The constructed URL as a string.
+ *
+ * @example
+ * // returns a URL 'base/path1/path2?key=value'
+ * buildUrl(['path1', 'path2'], { key: 'value' })
+ *
+ * // returns a URL 'base/path1/path2?key
+ */
+export function buildUrl(paths: string[], query?: { [key: string]: string | string[] }) {
+  const params = new URLSearchParams();
+  if (!query) {
+    query = { ApiKey: preferences.jellyfinApiKey };
+  }
+  for (const [key, value] of Object.entries(query)) {
+    if (Array.isArray(value)) {
+      for (const val of value) {
+        params.append(key, val);
+      }
+    } else {
+      params.append(key, value);
+    }
+  }
+  return `${preferences.jellyfinBase}/${paths.join("/")}?${params.toString()}`;
+}
+
+/**
+ * HelpError is an error which has (helpful) advice to fix it which is shown in a markdown detail view.
+ */
+export class HelpError extends Error {
+  constructor(public message: string, public helpMessage: string) {
+    super(message);
+  }
+}
+
+/**
+ * Throw a custom error depending on the HTTP response status.
+ *
+ * If the server response status is 400 or 401, the function throws a `HelpError`.
+ * For any other response status, the function throws a generic `Error`.
+ *
+ * @param {Response} resp – The response object from the server.
+ *
+ * @throws {HelpError} – Throws when the response status from the server is 400 (Bad Request) or
+ * 401 (Unauthorized).
+ * @throws {Error} - Throws for other status codes. The error message contains the server response status like
+ * `"Server returned <status>"`.
+ */
+function throwFetchError(resp: Response) {
+  const message = `Server returned ${resp.status}`;
+  // maybe we can help the user a bit if the status code is a known issue
+  switch (resp.status) {
+    case 400:
+      throw new HelpError(message, ErrStatus400);
+    case 401:
+      // 401 means probably API Token is wrong
+      throw new HelpError(message, ErrStatus401);
+  }
+  throw new Error(message);
+}
 
 /**
  * Represents the type of the media item
@@ -31,146 +94,16 @@ export interface RawMediaItem {
   };
 }
 
-export function buildUrl(paths: string[], query?: { [key: string]: string | string[] }) {
-  const params = new URLSearchParams();
-  if (!query) {
-    query = { ApiKey: preferences.jellyfinApiKey };
-  }
-  for (const [key, value] of Object.entries(query)) {
-    if (Array.isArray(value)) {
-      for (const val of value) {
-        params.append(key, val);
-      }
-    } else {
-      params.append(key, value);
-    }
-  }
-  return `${preferences.jellyfinBase}/${paths.join("/")}?${params.toString()}`;
-}
-
-export function MediaGridItem({
-  item,
-  pushNavigation,
-}: {
-  item: RawMediaItem;
-  pushNavigation?: (component: ReactNode) => void;
-}): JSX.Element {
-  const [isFavorite, setIsFavorite] = useState<boolean>(item.UserData.IsFavorite);
-
-  const coverUrl = buildUrl(["Items", item.Id, "Images", "Primary"], {
-    fillHeight: "600",
-    fillWidth: "400",
-    quality: "97",
-    tag: item.ImageTags.Primary,
-  });
-  const mediaUrl = buildUrl(["web", "index.html#!", "details"], {
-    id: item.Id,
-    serverId: item.ServerId,
-  });
-  const streamUrl = buildUrl(["Items", item.Id, "Download"], {
-    ApiKey: preferences.jellyfinApiKey,
-  });
-
-  let prefix = "";
-  if (preferences.showWatchedStatus && item.UserData.Played) {
-    prefix += "✅";
-  }
-  if (preferences.showFavoriteStatus && isFavorite) {
-    prefix += "❤️";
-  }
-
-  const subtitle: string[] = [];
-  if (item.ProductionYear) {
-    subtitle.push(`${item.ProductionYear}`);
-  }
-  if (item.CommunityRating) {
-    subtitle.push(`${Math.round(item.CommunityRating * 100) / 100}★`);
-  }
-
-  function createFavoriteHandler(favorite: boolean) {
-    const favoriteUrl = buildUrl(["Users", preferences.jellyfinUserID, "FavoriteItems", item.Id]);
-    return async () => {
-      try {
-        const resp = await fetch(favoriteUrl, { method: favorite ? "POST" : "DELETE" });
-        if (!resp.ok) {
-          throw new Error(`server returned status ${resp.status}`);
-        }
-        setIsFavorite(favorite);
-        showToast({
-          title: "❤️",
-          message: `${favorite ? "Marked" : "Unmarked"} '${item.Name}' as Favorite`,
-          style: Toast.Style.Success,
-        });
-      } catch (e) {
-        showToast({
-          title: "❤️",
-          message: `Cannot Mark Item: ${getErrorMessage(e)}`,
-          style: Toast.Style.Failure,
-        });
-      }
-    };
-  }
-
-  const actions = [
-    <Action.OpenInBrowser title="Open in Browser" url={mediaUrl} shortcut={{ key: "enter", modifiers: ["cmd"] }} />,
-    isFavorite ? (
-      <Action
-        title="Unfavorite"
-        icon={Icon.HeartDisabled}
-        style={Action.Style.Destructive}
-        onAction={createFavoriteHandler(false)}
-        shortcut={{ key: "f", modifiers: ["cmd"] }}
-      />
-    ) : (
-      <Action
-        title="Favorite"
-        icon={Icon.Heart}
-        onAction={createFavoriteHandler(true)}
-        shortcut={{ key: "f", modifiers: ["cmd"] }}
-      />
-    ),
-  ];
-
-  switch (item.Type) {
-    case "Movie":
-    case "Series":
-      actions.push(
-        <Action.CopyToClipboard
-          title="Copy Stream/Download URL"
-          content={streamUrl}
-          icon={Icon.Livestream}
-          shortcut={{ key: "s", modifiers: ["cmd"] }}
-        />
-      );
-      break;
-    case "BoxSet":
-      actions.unshift(
-        <Action
-          title="View Items"
-          icon={Icon.Eye}
-          onAction={() => {
-            pushNavigation && pushNavigation(<ListMediaCommand parentId={item.Id} />);
-          }}
-        />
-      );
-  }
-
-  return (
-    <Grid.Item
-      content={coverUrl}
-      title={`${prefix ? prefix + " " : ""}${item.Name}`}
-      subtitle={subtitle.join(" · ")}
-      actions={<ActionPanel title="Media Actions">{...actions}</ActionPanel>}
-    />
-  );
-}
-
-export class HelpError extends Error {
-  constructor(public message: string, public helpMessage: string) {
-    super(message);
-  }
-}
-
+/**
+ * Asynchronously fetches media items from a Jellyfin server.
+ *
+ * @export
+ * @param {MediaType[]} types - An array of MediaType enums which specifies the types of media items to fetch.
+ * @param {string} [parentId=""] - The ID of the parent container of the media items to fetch (default is an empty string, which means fetching all items).
+ * @returns {Promise<RawMediaItem[]>} - A promise that resolves to an array of RawMediaItem objects that represent the fetched media items.
+ * @throws {Error} - Thrown when the fetch response is not OK.
+ * @throws {HelpError} - Thrown when the fetch response is not OK and has status 400 or 401.
+ */
 export async function fetchItems(types: MediaType[], parentId = ""): Promise<RawMediaItem[]> {
   const url = buildUrl(["Users", preferences.jellyfinUserID, "Items"], {
     SortBy: "SortName",
@@ -185,17 +118,47 @@ export async function fetchItems(types: MediaType[], parentId = ""): Promise<Raw
   });
   const resp = await fetch(url);
   if (!resp.ok) {
-    const message = `Server returned ${resp.status}`;
-    // maybe we can help the user a bit if the status code is a known issue
-    switch (resp.status) {
-      case 400:
-        throw new HelpError(message, ErrStatus400);
-      case 401:
-        // 401 means probably API Token is wrong
-        throw new HelpError(message, ErrStatus401);
-    }
-    throw new Error(message);
+    throwFetchError(resp);
   }
   const media = (await resp.json()) as { Items: RawMediaItem[] };
   return media.Items;
+}
+
+export type TaskState = "Running" | "Idle";
+
+export interface ScheduledTask {
+  Name: string;
+  State: TaskState;
+  CurrentProgressPercentage?: number;
+  Id: string;
+  Description: string;
+  Category: string;
+  IsHidden: boolean;
+  Key: string;
+}
+
+/**
+ * Fetches the list of all currently running scheduled tasks asynchronously.
+ *
+ * @export
+ * @returns {Promise<ScheduledTask[]>} - Returns a promise that resolves to an array of ScheduledTask,
+ * representing all running tasks.
+ * @throws { FetchError } - Throws an error if the response from the fetch is not ok.
+ */
+export async function fetchScheduledTasks(): Promise<ScheduledTask[]> {
+  const url = buildUrl(["ScheduledTasks"]);
+  const resp = await fetch(url);
+  if (!resp.ok) {
+    throwFetchError(resp);
+  }
+  return (await resp.json()) as ScheduledTask[];
+}
+
+export async function signalTask(id: string, action = "DELETE"): Promise<boolean> {
+  const url = buildUrl(["ScheduledTasks", "Running", id]);
+  const resp = await fetch(url, { method: action });
+  if (!resp.ok) {
+    throwFetchError(resp);
+  }
+  return resp.ok;
 }

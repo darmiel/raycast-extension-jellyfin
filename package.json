@@ -22,6 +22,12 @@
       "title": "List Collections",
       "description": "Find BoxSets from your Jellyfin Instance",
       "mode": "view"
+    },
+    {
+      "name": "scheduled-tasks",
+      "title": "List Scheduled Tasks",
+      "description": "Show Scheduled and Running Tasks from your Jellyfin Instance",
+      "mode": "view"
     }
   ],
   "preferences": [
