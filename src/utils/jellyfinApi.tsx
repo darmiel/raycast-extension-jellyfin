@@ -1,15 +1,16 @@
-import { Action, ActionPanel, Grid, Icon, Toast, showHUD, showToast } from "@raycast/api";
+import { Action, ActionPanel, Grid, Icon, Toast, showToast, useNavigation } from "@raycast/api";
 import { getPreferences } from "./preferences";
-import fetch, { Response } from "node-fetch";
+import fetch from "node-fetch";
 import { ErrStatus400, ErrStatus401, getErrorMessage } from "./errors";
-import { useState } from "react";
+import { ReactNode, useState } from "react";
+import ListMediaCommand from "../list-movies-series";
 
 const preferences = getPreferences();
 
 /**
  * Represents the type of the media item
  */
-export type MediaType = "Movie" | "Series";
+export type MediaType = "Movie" | "Series" | "BoxSet";
 
 /**
  * Item object returned by the Jellyfin REST API
@@ -33,7 +34,7 @@ export interface RawMediaItem {
 export function buildUrl(paths: string[], query?: { [key: string]: string | string[] }) {
   const params = new URLSearchParams();
   if (!query) {
-    query = {ApiKey: preferences.jellyfinApiKey}
+    query = { ApiKey: preferences.jellyfinApiKey };
   }
   for (const [key, value] of Object.entries(query)) {
     if (Array.isArray(value)) {
@@ -47,7 +48,13 @@ export function buildUrl(paths: string[], query?: { [key: string]: string | stri
   return `${preferences.jellyfinBase}/${paths.join("/")}?${params.toString()}`;
 }
 
-export function MediaGridItem({ item }: { item: RawMediaItem }): JSX.Element {
+export function MediaGridItem({
+  item,
+  pushNavigation,
+}: {
+  item: RawMediaItem;
+  pushNavigation?: (component: ReactNode) => void;
+}): JSX.Element {
   const [isFavorite, setIsFavorite] = useState<boolean>(item.UserData.IsFavorite);
 
   const coverUrl = buildUrl(["Items", item.Id, "Images", "Primary"], {
@@ -63,7 +70,6 @@ export function MediaGridItem({ item }: { item: RawMediaItem }): JSX.Element {
   const streamUrl = buildUrl(["Items", item.Id, "Download"], {
     ApiKey: preferences.jellyfinApiKey,
   });
-  const rating = Math.round(item.CommunityRating * 100) / 100;
 
   let prefix = "";
   if (preferences.showWatchedStatus && item.UserData.Played) {
@@ -73,16 +79,22 @@ export function MediaGridItem({ item }: { item: RawMediaItem }): JSX.Element {
     prefix += "❤️";
   }
 
-  const favoriteUrl = buildUrl(["Users", preferences.jellyfinUserID, "FavoriteItems", item.Id]);
+  const subtitle: string[] = [];
+  if (item.ProductionYear) {
+    subtitle.push(`${item.ProductionYear}`);
+  }
+  if (item.CommunityRating) {
+    subtitle.push(`${Math.round(item.CommunityRating * 100) / 100}★`);
+  }
 
   function createFavoriteHandler(favorite: boolean) {
+    const favoriteUrl = buildUrl(["Users", preferences.jellyfinUserID, "FavoriteItems", item.Id]);
     return async () => {
       try {
         const resp = await fetch(favoriteUrl, { method: favorite ? "POST" : "DELETE" });
         if (!resp.ok) {
-            throw new Error(`server returned status ${resp.status}`)
+          throw new Error(`server returned status ${resp.status}`);
         }
-        console.log("req", favoriteUrl, ":", resp.ok, resp.status)
         setIsFavorite(favorite);
         showToast({
           title: "❤️",
@@ -99,42 +111,56 @@ export function MediaGridItem({ item }: { item: RawMediaItem }): JSX.Element {
     };
   }
 
+  const actions = [
+    <Action.OpenInBrowser title="Open in Browser" url={mediaUrl} shortcut={{ key: "enter", modifiers: ["cmd"] }} />,
+    isFavorite ? (
+      <Action
+        title="Unfavorite"
+        icon={Icon.HeartDisabled}
+        style={Action.Style.Destructive}
+        onAction={createFavoriteHandler(false)}
+        shortcut={{ key: "f", modifiers: ["cmd"] }}
+      />
+    ) : (
+      <Action
+        title="Favorite"
+        icon={Icon.Heart}
+        onAction={createFavoriteHandler(true)}
+        shortcut={{ key: "f", modifiers: ["cmd"] }}
+      />
+    ),
+  ];
+
+  switch (item.Type) {
+    case "Movie":
+    case "Series":
+      actions.push(
+        <Action.CopyToClipboard
+          title="Copy Stream/Download URL"
+          content={streamUrl}
+          icon={Icon.Livestream}
+          shortcut={{ key: "s", modifiers: ["cmd"] }}
+        />
+      );
+      break;
+    case "BoxSet":
+      actions.unshift(
+        <Action
+          title="View Items"
+          icon={Icon.Eye}
+          onAction={() => {
+            pushNavigation && pushNavigation(<ListMediaCommand parentId={item.Id} />);
+          }}
+        />
+      );
+  }
+
   return (
     <Grid.Item
       content={coverUrl}
       title={`${prefix ? prefix + " " : ""}${item.Name}`}
-      subtitle={`${item.ProductionYear} · ${rating}`}
-      actions={
-        <ActionPanel title="Media Actions">
-          <Action.OpenInBrowser
-            title="Open in Browser"
-            url={mediaUrl}
-            shortcut={{ key: "enter", modifiers: ["cmd"] }}
-          />
-          <Action.CopyToClipboard
-            title="Copy Stream/Download URL"
-            content={streamUrl}
-            icon={Icon.Livestream}
-            shortcut={{ key: "s", modifiers: ["cmd"] }}
-          />
-          {isFavorite ? (
-            <Action
-              title="Unfavorite"
-              icon={Icon.HeartDisabled}
-              style={Action.Style.Destructive}
-              onAction={createFavoriteHandler(false)}
-              shortcut={{ key: "f", modifiers: ["cmd"] }}
-            />
-          ) : (
-            <Action
-              title="Favorite"
-              icon={Icon.Heart}
-              onAction={createFavoriteHandler(true)}
-              shortcut={{ key: "f", modifiers: ["cmd"] }}
-            />
-          )}
-        </ActionPanel>
-      }
+      subtitle={subtitle.join(" · ")}
+      actions={<ActionPanel title="Media Actions">{...actions}</ActionPanel>}
     />
   );
 }
@@ -145,7 +171,7 @@ export class HelpError extends Error {
   }
 }
 
-export async function fetchItems(types: MediaType[]): Promise<RawMediaItem[]> {
+export async function fetchItems(types: MediaType[], parentId = ""): Promise<RawMediaItem[]> {
   const url = buildUrl(["Users", preferences.jellyfinUserID, "Items"], {
     SortBy: "SortName",
     SortOrder: "Ascending",
@@ -154,6 +180,7 @@ export async function fetchItems(types: MediaType[]): Promise<RawMediaItem[]> {
     ImageTypeLimit: "1",
     EnableImageTypes: "Primary",
     Limit: "10000",
+    ParentId: parentId,
     ApiKey: preferences.jellyfinApiKey,
   });
   const resp = await fetch(url);

@@ -1,9 +1,9 @@
-import { ReactNode, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Action, ActionPanel, Detail, Grid, Icon, openExtensionPreferences, showToast, Toast } from "@raycast/api";
-import fetch, { Response } from "node-fetch";
-import { getErrorMessage, ErrStatus400, ErrStatus401 } from "./utils/errors";
+import { getErrorMessage } from "./utils/errors";
 import { getPreferences } from "./utils/preferences";
-import { MediaGridItem, MediaType, RawMediaItem, buildUrl, fetchItems, HelpError } from "./utils/jellyfinApi";
+import { MediaGridItem, MediaType, RawMediaItem, fetchItems, HelpError } from "./utils/jellyfinApi";
+import { editToast } from "./utils/utils";
 
 const preferences = getPreferences();
 
@@ -13,18 +13,7 @@ const preferences = getPreferences();
  */
 const sections: MediaType[] = ["Movie", "Series"];
 
-/**
- * Edits a toast object
- * @param toast Toast object
- * @param message New toast message
- * @param style New toast style
- */
-function editToast(toast: Toast, message: string, style: Toast.Style = Toast.Style.Failure): void {
-  toast.message = message;
-  toast.style = style;
-}
-
-export default function Command() {
+export default function Command({ parentId }: { parentId?: string }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const [mediaTypes, setMediaTypes] = useState<MediaType[]>(sections);
@@ -41,7 +30,7 @@ export default function Command() {
       });
 
       try {
-        const newMedia = await fetchItems(sections);
+        const newMedia = await fetchItems(sections, parentId ?? "");
         setMedia(newMedia);
         editToast(toast, `Loaded ${newMedia.length} Media Files`, Toast.Style.Success);
       } catch (e) {

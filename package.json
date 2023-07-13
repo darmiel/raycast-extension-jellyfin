@@ -16,6 +16,12 @@
       "title": "List Movies and Shows",
       "description": "Find Movies and Shows from your Jellyfin Instance and open them in the browser",
       "mode": "view"
+    },
+    {
+      "name": "list-collections",
+      "title": "List Collections",
+      "description": "Find BoxSets from your Jellyfin Instance",
+      "mode": "view"
     }
   ],
   "preferences": [
