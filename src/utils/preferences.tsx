@@ -5,6 +5,8 @@ export interface Preferences {
   jellyfinUserID: string;
   jellyfinApiKey: string;
   columns: number;
+  showWatchedStatus: boolean;
+  showFavoriteStatus: boolean;
 }
 
 export function getPreferences(): Preferences {

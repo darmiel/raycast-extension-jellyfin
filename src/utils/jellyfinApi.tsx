@@ -66,10 +66,10 @@ export function MediaGridItem({ item }: { item: RawMediaItem }): JSX.Element {
   const rating = Math.round(item.CommunityRating * 100) / 100;
 
   let prefix = "";
-  if (item.UserData.Played) {
+  if (preferences.showWatchedStatus && item.UserData.Played) {
     prefix += "✅";
   }
-  if (isFavorite) {
+  if (preferences.showFavoriteStatus && isFavorite) {
     prefix += "❤️";
   }
 

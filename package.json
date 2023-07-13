@@ -51,6 +51,22 @@
       "default": "6",
       "description": "Must be a number between 1 and 7",
       "placeholder": "6"
+    },
+    {
+      "type": "checkbox",
+      "name": "showWatchedStatus",
+      "required": false,
+      "title": "Show Watched Status",
+      "default": true,
+      "description": "Adds the '✅' prefix in front of movies/series you already watched"
+    },
+    {
+      "type": "checkbox",
+      "name": "showFavoriteStatus",
+      "required": false,
+      "title": "Show Favorite Status",
+      "default": true,
+      "description": "Adds the '❤️' prefix in front of movies/series you marked as favorite"
     }
   ],
   "dependencies": {
