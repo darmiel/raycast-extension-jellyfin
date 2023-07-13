@@ -55,6 +55,7 @@ function SessionListItem({ session, refresh }: { session: Session; refresh: () =
           try {
             await signalSessionCommand(session.Id, command);
             editToast(toast, `Successfully sent ${command} to ${session.UserName}`, Toast.Style.Success);
+            refresh();
           } catch (e) {
             editToast(toast, getErrorMessage(e), Toast.Style.Failure);
           }

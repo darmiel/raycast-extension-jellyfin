@@ -76,7 +76,8 @@
       "required": false,
       "title": "Show Watched Status",
       "default": true,
-      "description": "Adds the '✅' prefix in front of movies/series you already watched"
+      "description": "Adds the '✅' prefix in front of movies/series you already watched",
+      "label": "Show a checkmark for media you already watched"
     },
     {
       "type": "checkbox",
@@ -84,7 +85,8 @@
       "required": false,
       "title": "Show Favorite Status",
       "default": true,
-      "description": "Adds the '❤️' prefix in front of movies/series you marked as favorite"
+      "description": "Adds the '❤️' prefix in front of movies/series you marked as favorite",
+      "label": "Show a heart for media your favorited"
     }
   ],
   "dependencies": {
