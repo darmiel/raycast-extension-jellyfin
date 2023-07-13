@@ -4,7 +4,6 @@
   "title": "Jellyfin",
   "description": "Find Movies and Shows on your Jellyfin Instance",
   "icon": "command-icon.png",
-  "owner": "d2a-preview",
   "author": "d2a",
   "categories": [
     "Media"
