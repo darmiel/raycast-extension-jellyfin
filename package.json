@@ -13,26 +13,26 @@
   "commands": [
     {
       "name": "list-movies-series",
-      "title": "List Movies and Shows",
-      "description": "Find Movies and Shows from your Jellyfin Instance and open them in the browser",
+      "title": "Search Movies and Shows",
+      "description": "Browse Movies and Shows from your Jellyfin Instance",
       "mode": "view"
     },
     {
       "name": "list-collections",
-      "title": "List Collections",
-      "description": "Find BoxSets from your Jellyfin Instance",
+      "title": "Search Collections",
+      "description": "Browse Collections from your Jellyfin Instance",
       "mode": "view"
     },
     {
       "name": "scheduled-tasks",
-      "title": "List Scheduled Tasks",
-      "description": "Show Scheduled and Running Tasks from your Jellyfin Instance",
+      "title": "Search Scheduled Tasks",
+      "description": "Browse and Control Scheduled Tasks from your Jellyfin Instance",
       "mode": "view"
     },
     {
       "name": "recent-sessions",
-      "title": "List Recent Sessions",
-      "description": "Show Recent Sessions from your Jellyfin Instance",
+      "title": "Search Recent Sessions",
+      "description": "Browse and Control Recent Sessions from your Jellyfin Instance",
       "mode": "view"
     }
   ],
