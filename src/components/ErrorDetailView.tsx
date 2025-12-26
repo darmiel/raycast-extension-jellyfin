@@ -1,4 +1,5 @@
 import { Action, ActionPanel, Detail, Icon, openExtensionPreferences } from "@raycast/api";
+import { JSX } from "react";
 
 export default function ErrorDetailView({
   children,

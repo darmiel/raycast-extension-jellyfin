@@ -1,5 +1,5 @@
-import { ReactNode, useState } from "react";
-import { RawMediaItem, buildUrl } from "../utils/jellyfinApi";
+import { JSX, ReactNode, useEffect, useState } from "react";
+import { RawMediaItem, buildUrl, getMediaPath } from "../utils/jellyfinApi";
 import { showToast, Toast, Action, Icon, Grid, ActionPanel } from "@raycast/api";
 import fetch from "node-fetch";
 import { getErrorMessage } from "../utils/errors";
@@ -65,6 +65,13 @@ export default function MediaGridItem({
 }): JSX.Element {
   const [isFavorite, setIsFavorite] = useState<boolean>(item.UserData.IsFavorite);
   const [isWatched, setIsWatched] = useState<boolean>(item.UserData.Played);
+  const [filePath, setFilePath] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    getMediaPath(item.Id)
+      .then(setFilePath)
+      .catch(() => {});
+  }, [item.Id]);
 
   const coverUrl = buildUrl(["Items", item.Id, "Images", "Primary"], {
     fillHeight: "600",
@@ -76,6 +83,7 @@ export default function MediaGridItem({
     id: item.Id,
     serverId: item.ServerId,
   });
+
   const streamUrl = buildUrl(["Items", item.Id, "Download"], {
     ApiKey: preferences.jellyfinApiKey,
   });
@@ -100,6 +108,14 @@ export default function MediaGridItem({
 
   const actions = [
     <Action.OpenInBrowser title="Open in Browser" url={mediaUrl} />,
+    filePath && (
+      <Action.ShowInFinder
+        title="Show in Finder"
+        path={filePath}
+        shortcut={{ modifiers: ["cmd", "shift"], key: "." }}
+      />
+    ),
+
     isWatched ? (
       <Action
         title="Unmark Watched"
@@ -143,7 +159,7 @@ export default function MediaGridItem({
           content={streamUrl}
           icon={Icon.Livestream}
           shortcut={{ key: "s", modifiers: ["cmd"] }}
-        />
+        />,
       );
       break;
     case "BoxSet":
@@ -152,9 +168,9 @@ export default function MediaGridItem({
           title="View Items"
           icon={Icon.Eye}
           onAction={() => {
-            pushNavigation && pushNavigation(<ListMediaCommand parentId={item.Id} />);
+            pushNavigation?.(<ListMediaCommand parentId={item.Id} />);
           }}
-        />
+        />,
       );
   }
 
