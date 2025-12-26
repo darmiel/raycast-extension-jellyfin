@@ -39,7 +39,10 @@ export function buildUrl(paths: string[], query?: { [key: string]: string | stri
  * HelpError is an error which has (helpful) advice to fix it which is shown in a markdown detail view.
  */
 export class HelpError extends Error {
-  constructor(public message: string, public helpMessage: string) {
+  constructor(
+    public message: string,
+    public helpMessage: string,
+  ) {
     super(message);
   }
 }
@@ -113,6 +116,7 @@ export async function fetchItems(types: MediaType[], parentId = ""): Promise<Raw
     ImageTypeLimit: "1",
     EnableImageTypes: "Primary",
     Limit: "10000",
+    fields: "Path,MediaSources",
     ParentId: parentId,
     ApiKey: preferences.jellyfinApiKey,
   });
@@ -122,6 +126,22 @@ export async function fetchItems(types: MediaType[], parentId = ""): Promise<Raw
   }
   const media = (await resp.json()) as { Items: RawMediaItem[] };
   return media.Items;
+}
+
+export async function getMediaPath(itemId: string): Promise<string | undefined> {
+  const url = buildUrl(["Items", itemId], {
+    fields: "Path",
+    userId: preferences.jellyfinUserID,
+    ApiKey: preferences.jellyfinApiKey,
+  });
+
+  const resp = await fetch(url);
+  if (!resp.ok) {
+    throwFetchError(resp);
+  }
+
+  const data = (await resp.json()) as { Path?: string };
+  return data.Path;
 }
 
 export type TaskState = "Running" | "Idle";
@@ -206,7 +226,7 @@ export async function fetchRecentSessions(): Promise<Session[]> {
   const sessions = (await resp.json()) as Session[];
   const now = new Date();
   return sessions.filter(
-    (session) => session.UserName && (now.getTime() - Date.parse(session.LastActivityDate)) / 1000 <= 960
+    (session) => session.UserName && (now.getTime() - Date.parse(session.LastActivityDate)) / 1000 <= 960,
   );
 }
 

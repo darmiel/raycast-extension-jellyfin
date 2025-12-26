@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from "react";
+import { JSX, ReactNode, useEffect, useState } from "react";
 import { Action, ActionPanel, Color, Icon, List, showToast, Toast } from "@raycast/api";
 import { getErrorMessage } from "./utils/errors";
 import { HelpError, Session, fetchRecentSessions, signalSessionCommand } from "./utils/jellyfinApi";
@@ -60,7 +60,7 @@ function SessionListItem({ session, refresh }: { session: Session; refresh: () =
             editToast(toast, getErrorMessage(e), Toast.Style.Failure);
           }
         }}
-      />
+      />,
     );
   }
 

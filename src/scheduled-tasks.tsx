@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from "react";
+import { JSX, ReactNode, useEffect, useState } from "react";
 import { Action, ActionPanel, Color, Icon, Image, List, showToast, Toast } from "@raycast/api";
 import { getErrorMessage } from "./utils/errors";
 import { HelpError, ScheduledTask, TaskState, fetchScheduledTasks, signalTask } from "./utils/jellyfinApi";
@@ -55,7 +55,7 @@ function TaskListItem({ task, refresh }: { task: ScheduledTask; refresh: () => v
             editToast(toast, getErrorMessage(e), Toast.Style.Failure);
           }
         }}
-      />
+      />,
     );
   } else {
     actions.push(
@@ -80,7 +80,7 @@ function TaskListItem({ task, refresh }: { task: ScheduledTask; refresh: () => v
             editToast(toast, getErrorMessage(e), Toast.Style.Failure);
           }
         }}
-      />
+      />,
     );
   }
 
