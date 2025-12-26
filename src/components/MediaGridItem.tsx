@@ -115,7 +115,9 @@ export default function MediaGridItem({
         shortcut={{ modifiers: ["cmd", "shift"], key: "." }}
       />
     ),
-
+    filePath && (
+      <Action.OpenWith title="Open with" path={filePath} shortcut={{ modifiers: ["cmd", "shift"], key: "o" }} />
+    ),
     isWatched ? (
       <Action
         title="Unmark Watched"
